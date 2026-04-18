@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Nataniel Lazo – Portafolio</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="edit-mode">
+
+<!-- HEADER -->
+<div id="mode-bar">
+<span>🎨 Portafolio</span>
+<div>
+<button class="mbtn active" onclick="setMode('edit')">Editor</button>
+<button class="mbtn" onclick="setMode('view')">Vista pública</button>
+</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+<div class="hero-inner">
+
+<div class="av" id="av-display">NL</div>
+<input type="file" onchange="updateAvatar(event)" class="edit-only">
+
+<div>
+<div class="hn">Nataniel Lazo</div>
+<p class="sub">Diseño Gráfico • AIEP</p>
+
+<div class="contact">
+<a href="https://wa.me/56945757127" target="_blank">WhatsApp</a>
+<a href="mailto:nta2807lazo@gmail.com">Email</a>
+</div>
+
+</div>
+</div>
+</div>
+
+<!-- NAV -->
+<nav>
+<button onclick="switchTab('works',this)" class="mbtn active">Trabajos</button>
+<button onclick="switchTab('about',this)" class="mbtn">Sobre mí</button>
+</nav>
+
+<!-- TRABAJOS -->
+<div id="tab-works" class="sec active">
+
+<div class="st">Portafolio</div>
+
+<!-- FILTROS -->
+<div class="filters">
+<button onclick="filterWorks('all')">Todos</button>
+<button onclick="filterWorks('Clientes')">Clientes</button>
+<button onclick="filterWorks('Universidad')">Universidad</button>
+<button onclick="filterWorks('Iglesias / Instituciones')">Iglesias</button>
+</div>
+
+<!-- FORM -->
+<div class="upload-box edit-only">
+
+<input type="text" id="title" placeholder="Título">
+<textarea id="desc" placeholder="Descripción"></textarea>
+
+<select id="category">
+<option>Clientes</option>
+<option>Universidad</option>
+<option>Iglesias / Instituciones</option>
+</select>
+
+<input type="file" id="file">
+<input type="text" id="youtube" placeholder="Link YouTube">
+
+<label><input type="checkbox" id="featured"> Proyecto destacado</label>
+
+<button onclick="addWork()">Guardar proyecto</button>
+
+</div>
+
+<div class="wg" id="grid"></div>
+
+</div>
+
+<!-- SOBRE MI EDITABLE -->
+<div id="tab-about" class="sec">
+
+<div class="st">Perfil Profesional</div>
+
+<!-- VISTA -->
+<div id="about-view"></div>
+
+<!-- EDITOR -->
+<div class="edit-only about-editor">
+<textarea id="about-input"></textarea>
+<button onclick="saveAbout()">Guardar</button>
+</div>
+
+</div>
+
+<script>
+
+/* ===================== STORAGE ===================== */
+let works = JSON.parse(localStorage.getItem("works")) || [];
+let avatar = localStorage.getItem("avatar") || null;
+let aboutText = localStorage.getItem("about") || `
+Estudiante de Diseño Gráfico de segundo año en AIEP.
+
+Manejo herramientas como Photoshop, Illustrator e InDesign.
+
+Especialidades:
+- Branding
+- Identidad visual
+- Diseño de afiches
+- Composición gráfica
+`;
+
+let filter="all";
+let editIndex=null;
+
+/* ===================== INIT ===================== */
+if(avatar){
+document.getElementById('av-display').style.backgroundImage=`url(${avatar})`;
+document.getElementById('av-display').innerText='';
+}
+
+/* ===================== MODO ===================== */
+function setMode(m){
+document.body.className = m + "-mode";
+}
+
+/* ===================== TABS ===================== */
+function switchTab(id,btn){
+document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+id).classList.add('active');
+btn.classList.add('active');
+}
+
+/* ===================== AVATAR ===================== */
+function updateAvatar(e){
+const reader=new FileReader();
+
+reader.onload=(ev)=>{
+localStorage.setItem("avatar", ev.target.result);
+
+let av=document.getElementById('av-display');
+av.style.backgroundImage=`url(${ev.target.result})`;
+av.innerText='';
+};
+
+reader.readAsDataURL(e.target.files[0]);
+}
+
+/* ===================== ABOUT ===================== */
+function renderAbout(){
+document.getElementById("about-view").innerHTML =
+`<p class="about-text">${aboutText.replace(/\n/g,"<br>")}</p>`;
+
+document.getElementById("about-input").value = aboutText;
+}
+
+function saveAbout(){
+let text=document.getElementById("about-input").value.trim();
+
+if(!text){
+alert("No puede estar vacío");
+return;
+}
+
+aboutText=text;
+localStorage.setItem("about",aboutText);
+
+renderAbout();
+showMsg("Perfil actualizado");
+}
+
+/* ===================== PROYECTOS ===================== */
+function addWork(){
+
+let title=document.getElementById('title').value.trim();
+let desc=document.getElementById('desc').value.trim();
+let cat=document.getElementById('category').value;
+let file=document.getElementById('file').files[0];
+let youtube=document.getElementById('youtube').value;
+let featured=document.getElementById('featured').checked;
+
+if(!title){
+alert("Agrega un título");
+return;
+}
+
+let reader=new FileReader();
+
+function save(img){
+
+let data={title,desc,cat,img,youtube,featured};
+
+if(editIndex!==null){
+works[editIndex]=data;
+editIndex=null;
+showMsg("Proyecto actualizado");
+}else{
+works.push(data);
+showMsg("Proyecto agregado");
+}
+
+render();
+clearForm();
+}
+
+if(file){
+reader.onload=e=>save(e.target.result);
+reader.readAsDataURL(file);
+}else{
+save(null);
+}
+
+}
+
+/* ===================== RENDER ===================== */
+function render(){
+
+localStorage.setItem("works", JSON.stringify(works));
+
+let grid=document.getElementById('grid');
+grid.innerHTML='';
+
+let filtered=works.filter(w=>filter==="all"||w.cat===filter);
+
+if(filtered.length===0){
+grid.innerHTML=`<p style="color:var(--muted)">No hay proyectos aún</p>`;
+return;
+}
+
+filtered.sort((a,b)=>b.featured - a.featured);
+
+filtered.forEach((w,index)=>{
+
+let media='';
+
+if(w.youtube){
+media=`<iframe src="${w.youtube.replace('watch?v=','embed/')}" allowfullscreen></iframe>`;
+}else if(w.img){
+media=`<img src="${w.img}">`;
+}
+
+grid.innerHTML+=`
+<div class="wc ${w.featured?'featured':''}">
+${media}
+<div class="winfo">
+<div class="wtl">${w.title}</div>
+<div class="wdesc">${w.desc}</div>
+<span class="wtag">${w.cat}</span>
+
+${w.featured?'<div class="badge">⭐ Destacado</div>':''}
+
+<div class="actions edit-only">
+<button onclick="editWork(${index})">Editar</button>
+<button onclick="deleteWork(${index})">Eliminar</button>
+</div>
+
+</div>
+</div>
+`;
+});
+}
+
+/* ===================== EDITAR ===================== */
+function editWork(i){
+let w=works[i];
+
+document.getElementById('title').value=w.title;
+document.getElementById('desc').value=w.desc;
+document.getElementById('category').value=w.cat;
+document.getElementById('youtube').value=w.youtube;
+document.getElementById('featured').checked=w.featured;
+
+editIndex=i;
+
+showMsg("Editando proyecto");
+}
+
+/* ===================== ELIMINAR ===================== */
+function deleteWork(i){
+if(confirm("¿Eliminar proyecto?")){
+works.splice(i,1);
+render();
+showMsg("Proyecto eliminado");
+}
+}
+
+/* ===================== FILTRO ===================== */
+function filterWorks(cat){
+filter=cat;
+render();
+}
+
+/* ===================== LIMPIAR ===================== */
+function clearForm(){
+document.getElementById('title').value="";
+document.getElementById('desc').value="";
+document.getElementById('youtube').value="";
+document.getElementById('file').value="";
+document.getElementById('featured').checked=false;
+}
+
+/* ===================== MENSAJE ===================== */
+function showMsg(text){
+let msg=document.createElement("div");
+msg.innerText=text;
+
+msg.style.position="fixed";
+msg.style.bottom="20px";
+msg.style.right="20px";
+msg.style.background="#5DCAA5";
+msg.style.color="#000";
+msg.style.padding="10px 15px";
+msg.style.borderRadius="8px";
+
+document.body.appendChild(msg);
+
+setTimeout(()=>msg.remove(),2000);
+}
+
+/* INIT */
+render();
+renderAbout();
+
+</script>
+
+</body>
+</html>
